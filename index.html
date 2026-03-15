@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-950 text-white p-4 md:p-8">
+    
     <div class="max-w-6xl mx-auto">
         <h1 class="text-4xl font-black mb-8 text-yellow-500">Steam Discount Tracker</h1>
         
@@ -22,14 +23,20 @@
         let allGames = [];
 
         async function fetchGames() {
+            const container = document.getElementById('gameList');
+            const loader = document.getElementById('loader');
+            
             try {
                 const res = await fetch('/api/deals');
                 const data = await res.json();
-                allGames = data.list || []; // Sesuaikan dengan struktur JSON GG.deals
+                
+                // Pastikan data.list ada
+                allGames = data.list || []; 
                 renderGames(allGames);
-                document.getElementById('loader').classList.add('hidden');
+                
+                if (loader) loader.classList.add('hidden');
             } catch (e) {
-                document.getElementById('loader').innerText = "Gagal memuat data. Cek API Key di Vercel!";
+                if (loader) loader.innerText = "Gagal memuat data. Cek API Key di Vercel!";
             }
         }
 
@@ -39,6 +46,8 @@
             try {
                 const response = await fetch(`/api/price?appid=${appId}`);
                 const data = await response.json();
+                
+                // Pengecekan aman
                 if (data[appId]?.success) {
                     const price = data[appId].data.price_overview?.final_formatted || "Gratis";
                     btnElement.innerText = price;
@@ -55,14 +64,15 @@
             const container = document.getElementById('gameList');
             container.innerHTML = games.map(g => `
                 <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 transition-all hover:-translate-y-2 hover:border-yellow-500">
-                    <img src="${g.thumb}" class="rounded-xl mb-4 w-full h-40 object-cover">
+                    <img src="${g.thumb}" class="rounded-xl mb-4 w-full h-40 object-cover" alt="${g.title}">
                     <h2 class="font-bold text-lg mb-2 truncate">${g.title}</h2>
                     <button onclick="fetchRealPrice('${g.steamAppID}', this)" class="w-full bg-slate-700 py-2 rounded-lg text-sm font-bold mb-2 hover:bg-slate-600">Cek Harga IDR</button>
-                    <a href="steam://store/${g.steamAppID}" class="block text-center w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700">BUKA DI STEAM</a>
+                    <a href="steam://store/${g.steamAppID}" class="block text-center w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700 transition">BUKA DI STEAM</a>
                 </div>
             `).join('');
         }
 
+        // Jalankan saat halaman siap
         fetchGames();
     </script>
 </body>
