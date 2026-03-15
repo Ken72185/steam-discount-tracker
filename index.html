@@ -2,94 +2,59 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam Deals Pro</title>
+    <title>Steam Deals Hunter</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); }
-    </style>
 </head>
 <body class="bg-slate-950 text-white min-h-screen p-8">
-    <div class="max-w-6xl mx-auto">
+    <div class="max-w-5xl mx-auto">
         <h1 class="text-4xl font-black mb-2 text-yellow-500">Steam Deals Hunter</h1>
-        <p class="text-slate-400 mb-8">Diskon terbaru hari ini.</p>
+        <div id="status" class="text-slate-400 mb-8">Status: Menghubungkan...</div>
 
         <div id="gameList" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-
-        <div class="text-center mt-12">
-            <button id="loadMoreBtn" onclick="renderNextBatch()" 
-                    class="bg-yellow-600 hover:bg-yellow-500 px-8 py-3 rounded-full font-bold transition-all hidden">
-                Load More Games
-            </button>
-        </div>
+        <button id="loadMore" onclick="render()" class="mt-8 hidden bg-yellow-600 px-6 py-3 rounded-xl w-full font-bold">Load More</button>
     </div>
 
     <script>
         let allGames = [];
-        let currentIndex = 0;
-        const batchSize = 6;
+        let index = 0;
 
         async function init() {
-    const container = document.getElementById('gameList');
-    const btn = document.getElementById('loadMoreBtn');
-    
-    try {
-        // Kita kasih limit waktu 10 detik, kalau lebih dari itu dianggap gagal
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); 
-
-        const res = await fetch('/api/deals', { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        
-        const data = await res.json();
-        
-        // Debugging: Lihat isi datanya di console
-        console.log("Data dari API:", data);
-
-        if (data.list && data.list.length > 0) {
-            allGames = data.list;
-            container.innerHTML = ""; // Bersihin tulisan "Mencari..."
-            renderNextBatch();
-        } else {
-            container.innerHTML = "<p>Data kosong atau format salah.</p>";
-        }
-    } catch (e) {
-        if (e.name === 'AbortError') {
-            container.innerHTML = "<p class='text-red-500'>Lama banget! Server GG.deals lagi sibuk atau API Key lo bermasalah.</p>";
-        } else {
-            container.innerHTML = `<p class='text-red-500'>Error: ${e.message}</p>`;
-        }
-    }
-}
-
-        function renderNextBatch() {
-            const container = document.getElementById('gameList');
-            const btn = document.getElementById('loadMoreBtn');
-            const nextIndex = currentIndex + batchSize;
-            const batch = allGames.slice(currentIndex, nextIndex);
-
-            batch.forEach(game => {
-                const card = document.createElement('div');
-                card.className = "glass p-4 rounded-2xl border border-slate-700 hover:border-yellow-500 transition-all";
-                card.innerHTML = `
-                    <img src="${game.thumb}" class="rounded-lg mb-4 w-full h-40 object-cover">
-                    <h2 class="font-bold mb-2 truncate">${game.title}</h2>
-                    <p class="text-yellow-500 font-bold mb-4">${game.price.final.formatted}</p>
-                    <a href="steam://store/${game.steamAppID}" class="block w-full text-center bg-slate-800 py-2 rounded-lg hover:bg-slate-700">View on Steam</a>
-                `;
-                container.appendChild(card);
-            });
-
-            currentIndex = nextIndex;
-            
-            // Tampilkan tombol jika masih ada data tersisa
-            if (currentIndex < allGames.length) {
-                btn.classList.remove('hidden');
-            } else {
-                btn.classList.add('hidden');
+            const status = document.getElementById('status');
+            try {
+                status.innerText = "Mengambil data dari API...";
+                const res = await fetch('/api/deals');
+                const data = await res.json();
+                
+                if (data.list && data.list.length > 0) {
+                    allGames = data.list;
+                    status.innerText = `Ditemukan ${allGames.length} game diskon!`;
+                    render();
+                } else {
+                    status.innerText = "Error: " + JSON.stringify(data);
+                }
+            } catch (e) {
+                status.innerText = "Gagal total: " + e.message;
             }
+        }
+
+        function render() {
+            const container = document.getElementById('gameList');
+            const btn = document.getElementById('loadMore');
+            const end = index + 6;
+            
+            allGames.slice(index, end).forEach(g => {
+                container.innerHTML += `
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700">
+                        <img src="${g.thumb}" class="rounded w-full h-32 object-cover mb-2">
+                        <h2 class="font-bold truncate">${g.title}</h2>
+                        <p class="text-yellow-500 font-bold">${g.price.final.formatted}</p>
+                    </div>
+                `;
+            });
+            
+            index = end;
+            if (index < allGames.length) btn.classList.remove('hidden');
+            else btn.classList.add('hidden');
         }
 
         init();
