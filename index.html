@@ -21,7 +21,7 @@
         </div>
 
         <div id="gameList" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <p id="loader" class="text-slate-400">Sedang menarik data dari CheapShark...</p>
+            <p id="loader" class="text-slate-400">Sedang menarik data...</p>
         </div>
     </div>
 
@@ -36,30 +36,24 @@
                 applyFilters();
                 document.getElementById('loader').classList.add('hidden');
             } catch (e) {
-                document.getElementById('loader').innerText = "Gagal memuat data. Periksa koneksi internet lo.";
+                document.getElementById('loader').innerText = "Gagal memuat data.";
             }
         }
 
         function applyFilters() {
             const search = document.getElementById('searchInput').value.toLowerCase();
             const sort = document.getElementById('sortBy').value;
-
             let filtered = allGames.filter(g => g.title.toLowerCase().includes(search));
-
             if (sort === 'low') filtered.sort((a, b) => a.salePrice - b.salePrice);
             if (sort === 'high') filtered.sort((a, b) => b.salePrice - a.salePrice);
-
             renderGames(filtered);
         }
 
         function renderGames(games) {
             const container = document.getElementById('gameList');
-            if (games.length === 0) {
-                container.innerHTML = '<p class="text-slate-500">Game tidak ditemukan.</p>';
-                return;
-            }
             container.innerHTML = games.map(g => `
-                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 hover:border-yellow-500 transition-all">
+                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 transition-all duration-300 
+                            hover:-translate-y-2 hover:border-yellow-500 hover:shadow-2xl hover:shadow-yellow-500/20">
                     <img src="${g.thumb}" class="rounded-xl mb-4 w-full h-40 object-cover" alt="${g.title}">
                     <h2 class="font-bold text-lg mb-2 truncate">${g.title}</h2>
                     <div class="flex justify-between items-center mb-4">
