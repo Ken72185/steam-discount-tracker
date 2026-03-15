@@ -24,22 +24,31 @@
         let allGames = [];
 
         async function fetchGames() {
-            const container = document.getElementById('gameList');
-            const loader = document.getElementById('loader');
-            
-            try {
-                const res = await fetch('/api/deals');
-                const data = await res.json();
-                
-                // Pastikan data.list ada
-                allGames = data.list || []; 
-                renderGames(allGames);
-                
-                if (loader) loader.classList.add('hidden');
-            } catch (e) {
-                if (loader) loader.innerText = "Gagal memuat data. Cek API Key di Vercel!";
-            }
+    const container = document.getElementById('gameList');
+    const loader = document.getElementById('loader');
+    
+    console.log("Mencoba fetch ke /api/deals...");
+    
+    try {
+        const res = await fetch('/api/deals');
+        const data = await res.json();
+        
+        console.log("Data yang diterima dari API:", data); // INI KUNCI BUAT DEBUG
+        
+        // Kita cek apakah isinya ada
+        if (data && data.list) {
+            allGames = data.list;
+            renderGames(allGames);
+            if (loader) loader.classList.add('hidden');
+        } else {
+            console.log("Struktur data tidak sesuai atau list kosong");
+            if (loader) loader.innerText = "Data tidak ditemukan. Cek struktur JSON di console!";
         }
+    } catch (e) {
+        console.error("Error Fetching:", e);
+        if (loader) loader.innerText = "Error server: " + e.message;
+    }
+}
 
         async function fetchRealPrice(appId, btnElement) {
             btnElement.innerText = "Mengecek...";
