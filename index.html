@@ -30,18 +30,39 @@
         const batchSize = 6;
 
         async function init() {
-            const container = document.getElementById('gameList');
-            container.innerHTML = "<p>Mencari diskon terbaik...</p>";
+    const container = document.getElementById('gameList');
+    const btn = document.getElementById('loadMoreBtn');
+    
+    try {
+        // Kita kasih limit waktu 10 detik, kalau lebih dari itu dianggap gagal
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); 
 
-            try {
-                const res = await fetch('/api/deals');
-                const data = await res.json();
-                allGames = data.list || [];
-                renderNextBatch();
-            } catch (e) {
-                container.innerHTML = "<p class='text-red-500'>Gagal ambil data. Cek API Key di Vercel.</p>";
-            }
+        const res = await fetch('/api/deals', { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
+        
+        const data = await res.json();
+        
+        // Debugging: Lihat isi datanya di console
+        console.log("Data dari API:", data);
+
+        if (data.list && data.list.length > 0) {
+            allGames = data.list;
+            container.innerHTML = ""; // Bersihin tulisan "Mencari..."
+            renderNextBatch();
+        } else {
+            container.innerHTML = "<p>Data kosong atau format salah.</p>";
         }
+    } catch (e) {
+        if (e.name === 'AbortError') {
+            container.innerHTML = "<p class='text-red-500'>Lama banget! Server GG.deals lagi sibuk atau API Key lo bermasalah.</p>";
+        } else {
+            container.innerHTML = `<p class='text-red-500'>Error: ${e.message}</p>`;
+        }
+    }
+}
 
         function renderNextBatch() {
             const container = document.getElementById('gameList');
