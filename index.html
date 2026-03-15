@@ -3,87 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam Discount Tracker Pro</title>
+    <title>Steam Price Tracker Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
+        .gradient-text { background: linear-gradient(to right, #fbbf24, #f59e0b); -webkit-background-clip: text; color: transparent; }
+    </style>
 </head>
-<body class="bg-slate-950 text-white p-4 md:p-8">
+<body class="bg-slate-950 text-white min-h-screen font-sans">
     
-    <div class="max-w-6xl mx-auto">
-        <h1 class="text-4xl font-black mb-8 text-yellow-500">Steam Discount Tracker</h1>
-        
-        <input type="text" id="searchInput" oninput="applyFilters()" placeholder="Cari game..." 
-               class="bg-slate-800 p-4 rounded-xl border border-slate-700 w-full mb-8 outline-none focus:border-yellow-500">
+    <div class="max-w-4xl mx-auto px-6 py-12">
+        <h1 class="text-5xl font-extrabold mb-2 gradient-text">Price Tracker</h1>
+        <p class="text-slate-400 mb-10">Cek harga game favorit lo secara real-time.</p>
 
-        <div id="gameList" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <p id="loader" class="text-slate-400">Menghubungkan ke API GG.deals...</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass p-6 rounded-3xl border border-slate-700 hover:border-yellow-500 transition-all duration-300">
+                <h2 class="text-xl font-bold mb-4">Cyberpunk 2077</h2>
+                <button onclick="fetchPrice('1091500', this)" 
+                        class="w-full bg-slate-800 hover:bg-yellow-600 border border-slate-600 py-3 rounded-xl font-bold transition-all">
+                    Cek Harga IDR
+                </button>
+            </div>
+
+            <div class="glass p-6 rounded-3xl border border-slate-700 hover:border-yellow-500 transition-all duration-300">
+                <h2 class="text-xl font-bold mb-4">Elden Ring</h2>
+                <button onclick="fetchPrice('1245620', this)" 
+                        class="w-full bg-slate-800 hover:bg-yellow-600 border border-slate-600 py-3 rounded-xl font-bold transition-all">
+                    Cek Harga IDR
+                </button>
+            </div>
         </div>
     </div>
 
     <script>
-        
-        let allGames = [];
+        async function fetchPrice(appId, btn) {
+            const originalText = btn.innerText;
+            btn.innerText = "Mengecek...";
+            btn.disabled = true;
 
-        async function fetchGames() {
-    const container = document.getElementById('gameList');
-    const loader = document.getElementById('loader');
-    
-    console.log("Mencoba fetch ke /api/deals...");
-    
-    try {
-        const res = await fetch('/api/deals');
-        const data = await res.json();
-        
-        console.log("Data yang diterima dari API:", data); // INI KUNCI BUAT DEBUG
-        
-        // Kita cek apakah isinya ada
-        if (data && data.list) {
-            allGames = data.list;
-            renderGames(allGames);
-            if (loader) loader.classList.add('hidden');
-        } else {
-            console.log("Struktur data tidak sesuai atau list kosong");
-            if (loader) loader.innerText = "Data tidak ditemukan. Cek struktur JSON di console!";
-        }
-    } catch (e) {
-        console.error("Error Fetching:", e);
-        if (loader) loader.innerText = "Error server: " + e.message;
-    }
-}
-
-        async function fetchRealPrice(appId, btnElement) {
-            btnElement.innerText = "Mengecek...";
-            btnElement.disabled = true;
             try {
-                const response = await fetch(`/api/price?appid=${appId}`);
-                const data = await response.json();
+                const res = await fetch(`/api/deals?appId=${appId}`);
+                const data = await res.json();
                 
-                // Pengecekan aman
-                if (data[appId]?.success) {
-                    const price = data[appId].data.price_overview?.final_formatted || "Gratis";
-                    btnElement.innerText = price;
-                    btnElement.classList.replace("bg-slate-700", "bg-green-700");
+                // Cek isi data di console
+                console.log(data); 
+
+                // Menyesuaikan dengan struktur data GG.deals
+                if (data && data.lowestPrice) {
+                    btn.innerText = `Rp ${data.lowestPrice.amount.toLocaleString('id-ID')}`;
+                    btn.classList.replace("bg-slate-800", "bg-green-600");
                 } else {
-                    btnElement.innerText = "Harga Normal";
+                    btn.innerText = "Harga Normal";
                 }
             } catch (e) {
-                btnElement.innerText = "Error";
+                btn.innerText = "Gagal";
+            } finally {
+                btn.disabled = false;
             }
         }
-
-        function renderGames(games) {
-            const container = document.getElementById('gameList');
-            container.innerHTML = games.map(g => `
-                <div class="bg-slate-900 p-5 rounded-2xl border border-slate-800 transition-all hover:-translate-y-2 hover:border-yellow-500">
-                    <img src="${g.thumb}" class="rounded-xl mb-4 w-full h-40 object-cover" alt="${g.title}">
-                    <h2 class="font-bold text-lg mb-2 truncate">${g.title}</h2>
-                    <button onclick="fetchRealPrice('${g.steamAppID}', this)" class="w-full bg-slate-700 py-2 rounded-lg text-sm font-bold mb-2 hover:bg-slate-600">Cek Harga IDR</button>
-                    <a href="steam://store/${g.steamAppID}" class="block text-center w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700 transition">BUKA DI STEAM</a>
-                </div>
-            `).join('');
-        }
-
-        // Jalankan saat halaman siap
-        fetchGames();
     </script>
 </body>
 </html>
