@@ -3,64 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Steam Price Tracker Pro</title>
+    <title>Steam Deals Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); }
-        .gradient-text { background: linear-gradient(to right, #fbbf24, #f59e0b); -webkit-background-clip: text; color: transparent; }
+        .glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); }
     </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen font-sans">
-    
-    <div class="max-w-4xl mx-auto px-6 py-12">
-        <h1 class="text-5xl font-extrabold mb-2 gradient-text">Price Tracker</h1>
-        <p class="text-slate-400 mb-10">Cek harga game favorit lo secara real-time.</p>
+<body class="bg-slate-950 text-white min-h-screen p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-4xl font-black mb-2 text-yellow-500">Steam Deals Hunter</h1>
+        <p class="text-slate-400 mb-8">Diskon terbaru hari ini.</p>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass p-6 rounded-3xl border border-slate-700 hover:border-yellow-500 transition-all duration-300">
-                <h2 class="text-xl font-bold mb-4">Cyberpunk 2077</h2>
-                <button onclick="fetchPrice('1091500', this)" 
-                        class="w-full bg-slate-800 hover:bg-yellow-600 border border-slate-600 py-3 rounded-xl font-bold transition-all">
-                    Cek Harga IDR
-                </button>
-            </div>
+        <div id="gameList" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
 
-            <div class="glass p-6 rounded-3xl border border-slate-700 hover:border-yellow-500 transition-all duration-300">
-                <h2 class="text-xl font-bold mb-4">Elden Ring</h2>
-                <button onclick="fetchPrice('1245620', this)" 
-                        class="w-full bg-slate-800 hover:bg-yellow-600 border border-slate-600 py-3 rounded-xl font-bold transition-all">
-                    Cek Harga IDR
-                </button>
-            </div>
+        <div class="text-center mt-12">
+            <button id="loadMoreBtn" onclick="renderNextBatch()" 
+                    class="bg-yellow-600 hover:bg-yellow-500 px-8 py-3 rounded-full font-bold transition-all hidden">
+                Load More Games
+            </button>
         </div>
     </div>
 
     <script>
-        async function fetchPrice(appId, btn) {
-            const originalText = btn.innerText;
-            btn.innerText = "Mengecek...";
-            btn.disabled = true;
+        let allGames = [];
+        let currentIndex = 0;
+        const batchSize = 6;
+
+        async function init() {
+            const container = document.getElementById('gameList');
+            container.innerHTML = "<p>Mencari diskon terbaik...</p>";
 
             try {
-                const res = await fetch(`/api/deals?appId=${appId}`);
+                const res = await fetch('/api/deals');
                 const data = await res.json();
-                
-                // Cek isi data di console
-                console.log(data); 
-
-                // Menyesuaikan dengan struktur data GG.deals
-                if (data && data.lowestPrice) {
-                    btn.innerText = `Rp ${data.lowestPrice.amount.toLocaleString('id-ID')}`;
-                    btn.classList.replace("bg-slate-800", "bg-green-600");
-                } else {
-                    btn.innerText = "Harga Normal";
-                }
+                allGames = data.list || [];
+                renderNextBatch();
             } catch (e) {
-                btn.innerText = "Gagal";
-            } finally {
-                btn.disabled = false;
+                container.innerHTML = "<p class='text-red-500'>Gagal ambil data. Cek API Key di Vercel.</p>";
             }
         }
+
+        function renderNextBatch() {
+            const container = document.getElementById('gameList');
+            const btn = document.getElementById('loadMoreBtn');
+            const nextIndex = currentIndex + batchSize;
+            const batch = allGames.slice(currentIndex, nextIndex);
+
+            batch.forEach(game => {
+                const card = document.createElement('div');
+                card.className = "glass p-4 rounded-2xl border border-slate-700 hover:border-yellow-500 transition-all";
+                card.innerHTML = `
+                    <img src="${game.thumb}" class="rounded-lg mb-4 w-full h-40 object-cover">
+                    <h2 class="font-bold mb-2 truncate">${game.title}</h2>
+                    <p class="text-yellow-500 font-bold mb-4">${game.price.final.formatted}</p>
+                    <a href="steam://store/${game.steamAppID}" class="block w-full text-center bg-slate-800 py-2 rounded-lg hover:bg-slate-700">View on Steam</a>
+                `;
+                container.appendChild(card);
+            });
+
+            currentIndex = nextIndex;
+            
+            // Tampilkan tombol jika masih ada data tersisa
+            if (currentIndex < allGames.length) {
+                btn.classList.remove('hidden');
+            } else {
+                btn.classList.add('hidden');
+            }
+        }
+
+        init();
     </script>
 </body>
 </html>
