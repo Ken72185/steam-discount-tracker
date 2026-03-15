@@ -2,16 +2,26 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <title>Steam Deals Hunter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Steam Price Tracker Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass { background: rgba(30, 41, 59, 0.6); backdrop-filter: blur(12px); }
+        .gradient-text { background: linear-gradient(to right, #fbbf24, #f59e0b); -webkit-background-clip: text; color: transparent; }
+    </style>
 </head>
-<body class="bg-slate-950 text-white min-h-screen p-8">
+<body class="bg-slate-950 text-white font-sans p-6">
     <div class="max-w-5xl mx-auto">
-        <h1 class="text-4xl font-black mb-2 text-yellow-500">Steam Deals Hunter</h1>
-        <div id="status" class="text-slate-400 mb-8">Status: Menghubungkan...</div>
+        <h1 class="text-5xl font-black mb-2 gradient-text">Steam Price Tracker</h1>
+        <p class="text-slate-400 mb-10">Cek harga game diskon dalam Rupiah (IDR).</p>
 
         <div id="gameList" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
-        <button id="loadMore" onclick="render()" class="mt-8 hidden bg-yellow-600 px-6 py-3 rounded-xl w-full font-bold">Load More</button>
+
+        <div class="text-center mt-12">
+            <button id="loadMore" onclick="renderNext()" class="hidden bg-yellow-600 hover:bg-yellow-500 px-8 py-3 rounded-full font-bold transition-all">
+                Load More Games
+            </button>
+        </div>
     </div>
 
     <script>
@@ -19,42 +29,44 @@
         let index = 0;
 
         async function init() {
-            const status = document.getElementById('status');
+            const list = document.getElementById('gameList');
+            list.innerHTML = "Memuat daftar diskon...";
             try {
-                status.innerText = "Mengambil data dari API...";
-                const res = await fetch('/api/deals');
+                const res = await fetch('/api/games');
                 const data = await res.json();
-                
-                if (data.list && data.list.length > 0) {
-                    allGames = data.list;
-                    status.innerText = `Ditemukan ${allGames.length} game diskon!`;
-                    render();
-                } else {
-                    status.innerText = "Error: " + JSON.stringify(data);
-                }
-            } catch (e) {
-                status.innerText = "Gagal total: " + e.message;
-            }
+                allGames = data.list || [];
+                list.innerHTML = "";
+                renderNext();
+            } catch (e) { list.innerHTML = "Gagal memuat list."; }
         }
 
-        function render() {
-            const container = document.getElementById('gameList');
-            const btn = document.getElementById('loadMore');
+        function renderNext() {
+            const list = document.getElementById('gameList');
             const end = index + 6;
-            
             allGames.slice(index, end).forEach(g => {
-                container.innerHTML += `
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700">
-                        <img src="${g.thumb}" class="rounded w-full h-32 object-cover mb-2">
-                        <h2 class="font-bold truncate">${g.title}</h2>
-                        <p class="text-yellow-500 font-bold">${g.price.final.formatted}</p>
+                list.innerHTML += `
+                    <div class="glass p-5 rounded-3xl border border-slate-700 hover:border-yellow-500 transition-all">
+                        <img src="${g.thumb}" class="w-full h-32 object-cover rounded-2xl mb-4">
+                        <h2 class="font-bold mb-4 h-12 truncate">${g.title}</h2>
+                        <button onclick="getPrice('${g.steamAppID}', this)" 
+                                class="w-full bg-slate-800 hover:bg-yellow-600 border border-slate-600 py-3 rounded-xl font-bold transition-all">
+                            Cek Harga IDR
+                        </button>
                     </div>
                 `;
             });
-            
             index = end;
-            if (index < allGames.length) btn.classList.remove('hidden');
-            else btn.classList.add('hidden');
+            document.getElementById('loadMore').classList.toggle('hidden', index >= allGames.length);
+        }
+
+        async function getPrice(appId, btn) {
+            btn.innerText = "Mengambil...";
+            try {
+                const res = await fetch(`/api/price?appId=${appId}`);
+                const data = await res.json();
+                btn.innerText = data.final_formatted;
+                btn.classList.replace("bg-slate-800", "bg-green-700");
+            } catch (e) { btn.innerText = "Gagal"; }
         }
 
         init();
